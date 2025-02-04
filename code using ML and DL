@@ -1,0 +1,68 @@
+import nltk
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer,WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+import sklearn.metrics as m
+  dataset=pd.read_csv("/content/spam.csv",encoding='latin-1')
+dataset.head(5)
+  nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+sent=dataset.iloc[:,[1]]['v2']
+labels=dataset.iloc[:,[0]]['v1']
+labels
+  from sklearn.preprocessing import LabelEncoder
+le=LabelEncoder()
+labels=le.fit_transform(labels)
+le.classes_
+  from tensorflow.keras.utils import to_categorical
+labels = to_categorical(labels)
+import re
+lemma=WordNetLemmatizer()
+sentences=[]
+for j in range(0,len(sent)):
+  s=re.sub('[^A-Za-z]',' ',sent[j])
+  s=s.lower()
+  words=word_tokenize(s)
+  words=[lemma.lemmatize(i) for i in words if i not in stopwords.words('english')]
+  s=' '.join(words)
+  sentences.append(s)
+  sentences
+!pip install keras
+from tensorflow.keras.preprocessing.text import one_hot # Use tensorflow.keras instead of keras
+one_hot_sent=[one_hot(i,10000) for i in sentences]
+maxi=[len(i) for i in one_hot_sent]
+max(maxi)
+from keras.preprocessing.sequence import  pad_sequences
+padsequences=pad_sequences(one_hot_sent,maxlen=80)
+padsequences
+feature_train,feature_test,label_train,label_test=train_test_split(padsequences,labels,test_size=0.2,random_state=7)
+from keras.models import Sequential
+from keras.layers import Embedding,LSTM,Dense,Dropout,Flatten
+model=Sequential()
+model.add(Embedding(10000,64,input_length=80))
+model.add(LSTM(100))
+model.add(Dense(2,activation='sigmoid'))
+model.compile(loss='binary_crossentropy',metrics=['accuracy'],optimizer='adam')
+model.summary()
+print(f"feature_train shape: {feature_train.shape}")
+print(f"label_train shape: {label_train.shape}")
+print(f"feature_test shape: {feature_test.shape}")
+print(f"label_test shape: {label_test.shape}")
+!pip install --force-reinstall keras tensorflow
+model.fit(feature_train,label_train,epochs=20,validation_data=(feature_test,label_test))
+label_pred=model.predict(feature_test)
+label_pred
+import numpy as np
+
+label_pred_=[np.argmax(i,axis=0) for i in label_pred]
+label_pred_[0:5]
+label_test_=[np.argmax(i,axis=0) for i in label_test]
+m.accuracy_score(label_test_,label_pred_)
+print(m.confusion_matrix(label_test_,label_pred_))
+print(m.classification_report(label_test_,label_pred_))
